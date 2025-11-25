@@ -7,7 +7,7 @@ app.use(express.json());
 const activeStreams = {};
 
 app.post("/start", (req, res) => {
-  const { rtsp_url, rtmp_url, event_id } = req.body;
+  const { rtsp_url, rtmp_url, event_id, use_tcp } = req.body;
 
   if (!rtsp_url || !rtmp_url || !event_id) {
     return res.status(400).json({ error: "Missing required fields" });
@@ -17,19 +17,33 @@ app.post("/start", (req, res) => {
     return res.json({ status: "already_running" });
   }
 
-  const args = [
+  // Build FFmpeg args
+  const args = [];
+
+  if (use_tcp) {
+    args.push("-rtsp_transport", "tcp");
+  }
+
+  args.push(
     "-i", rtsp_url,
     "-c:v", "copy",
     "-c:a", "aac",
     "-f", "flv",
     rtmp_url
-  ];
+  );
 
+  // Spawn FFmpeg process
   const ffmpeg = spawn("ffmpeg", args);
   activeStreams[event_id] = ffmpeg;
 
-  ffmpeg.stderr.on("data", d => console.log(`[FFmpeg][${event_id}]`, d.toString()));
-  ffmpeg.on("close", () => delete activeStreams[event_id]);
+  ffmpeg.stderr.on("data", d =>
+    console.log(`[FFmpeg][${event_id}]`, d.toString())
+  );
+
+  ffmpeg.on("close", () => {
+    console.log(`FFmpeg stopped for event ${event_id}`);
+    delete activeStreams[event_id];
+  });
 
   return res.json({ status: "started" });
 });
@@ -50,4 +64,6 @@ app.get("/", (req, res) => {
   res.send("UnityCast Relay Server Running");
 });
 
-app.listen(3000, () => console.log("Relay Server running on port 3000"));
+app.listen(3000, () =>
+  console.log("Relay Server running on port 3000")
+);
