@@ -1,0 +1,13 @@
+{
+  "name": "unitycast-relay",
+  "version": "1.0.0",
+  "description": "FFmpeg relay server for UnityCast RTSP -> Cloudflare Stream",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0"
+  }
+}
